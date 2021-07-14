@@ -10,12 +10,16 @@
 
 #define MAXLINE 8192
 #define SER_PORT 8000
-#define CLI_CNT 3
+#define CLI_CNT 50
 
 struct cli_info {
   struct sockaddr_in addr;
   int cfd;
 };
+
+const char *chat_style = "\033[32m\t\t";
+const char *err_style = "\033[31m";
+const char *err_group_chat = "群聊人数已满, 无法发送信息到群聊\n";
 
 struct cli_info cinfos[CLI_CNT];
 
@@ -47,8 +51,9 @@ int main() {
   for ( ; ; ) {
     cli_addr_len = sizeof(cli_addr);
     cfd = Accept(lfd, (struct sockaddr *)&cli_addr, &cli_addr_len);
-    if (i == CLI_CNT) {
-      printf("客户端数量已满，无法再建立连接\n");
+    if (i == CLI_CNT) { // 群聊人数已满
+      Write(cfd, (void *)err_style, strlen(err_style));
+      Write(cfd, (void *)err_group_chat, strlen(err_group_chat));
     } else {
       cinfos[i].addr = cli_addr;
       cinfos[i].cfd = cfd;
@@ -80,6 +85,7 @@ void *group_chat(void *arg) {
     // 转发消息到除了发送消息之外的客户端
     for (int i = 0; i < CLI_CNT; i++) {
       if ((cinfos[i].cfd != (*cinfo).cfd) && (cinfos[i].cfd != 0)) {
+        Write(cinfos[i].cfd, (void *)chat_style, strlen(chat_style));
         Write(cinfos[i].cfd, buf, res);
       }
     }
