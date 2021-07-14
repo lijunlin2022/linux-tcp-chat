@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
 #include <pthread.h>
@@ -15,6 +16,7 @@
 struct cli_info {
   struct sockaddr_in addr;
   int cfd;
+  char name[BUFSIZ];
 };
 
 const char *chat_style = "\033[32m\t\t";
@@ -31,6 +33,7 @@ int main() {
   socklen_t cli_addr_len;
   int lfd, cfd;
   pthread_t tid;
+  char username[BUFSIZ];
 
   lfd = Socket(AF_INET, SOCK_STREAM, 0);
 
@@ -57,6 +60,14 @@ int main() {
     } else {
       cinfos[i].addr = cli_addr;
       cinfos[i].cfd = cfd;
+      
+      sprintf(username, "%s%d", "user", cfd);
+      strncpy(cinfos[i].name, username, strlen(username));
+      
+      // 分配昵称
+      printf("给 cfd 为 %d  的客户端分配昵称 %s\n", cinfos[i].cfd, cinfos[i].name);
+      Write(cinfos[i].cfd, cinfos[i].name, sizeof(cinfos[i].name));
+
       pthread_create(&tid, NULL, group_chat, (void*)&cinfos[i]);
       pthread_detach(tid);  // 子进程分离,防止僵尸线程产生
       i++;
@@ -66,30 +77,31 @@ int main() {
 }
 
 void *group_chat(void *arg) {
-  struct cli_info *cinfo = (struct cli_info *)arg;
-  char buf[MAXLINE];
-  char str[INET_ADDRSTRLEN];
+  struct cli_info *c = (struct cli_info *)arg;
+  char prefix[BUFSIZ + 2];
+  char buf[BUFSIZ];
 
+  sprintf(prefix, "%s: ", c->name);
   int res = 0;
   for ( ; ; ) {
-    res = Read(cinfo->cfd, buf, MAXLINE);
+    res = Read(c->cfd, buf, sizeof(buf));
     if (res == 0) {
-      printf("描述符为 %d 的客户端已经断开连接\n", cinfo->cfd);
+      printf("%s 已经断开连接\n", c->name);
       break;
     }
-    printf("从 %s:%d 接到信息: \n",
-            inet_ntop(AF_INET, &(*cinfo).addr.sin_addr, str, sizeof(str)),
-            ntohs((*cinfo).addr.sin_port));
+    printf("从 %s 接到信息: \n", c->name);
     Write(STDOUT_FILENO, buf, res);
+    printf("--------------------\n");
     
     // 转发消息到除了发送消息之外的客户端
     for (int i = 0; i < CLI_CNT; i++) {
-      if ((cinfos[i].cfd != (*cinfo).cfd) && (cinfos[i].cfd != 0)) {
+      if ((cinfos[i].cfd != (*c).cfd) && (cinfos[i].cfd != 0)) {
         Write(cinfos[i].cfd, (void *)chat_style, strlen(chat_style));
+	Write(cinfos[i].cfd, prefix, strlen(prefix));
         Write(cinfos[i].cfd, buf, res);
       }
     }
   }
-  Close(cinfo->cfd);
+  Close(c->cfd);
   return (void *)0;
 }

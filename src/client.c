@@ -4,7 +4,6 @@
 
 #define SERV_PORT 8000
 const char *send_style = "\033[33m";
-const char *send_tip = ">> ";
 const char *recv_style = "\033[32m\t\t";
 
 char menu();
@@ -42,22 +41,21 @@ char menu() {
   char input[BUFSIZ];
   printf("%s", send_style);
   printf("----------------------------------------\n");
-  printf("|输入 g 进入群聊天 (group chat)        |\n");
-  printf("|输入 p 进入私聊 (private chat)        |\n");
-  printf("|输入 h 查看群聊历史记录(history)      |\n");
-  printf("|输入 t 开始文件传输 (transfer file)   |\n");
-  printf("|输入 q 退出程序 (quit)                |\n");
+  printf("|输入 :g 进入群聊天 (group chat)        |\n");
+  printf("|输入 :p 进入私聊 (private chat)        |\n");
+  printf("|输入 :h 查看群聊历史记录(history)      |\n");
+  printf("|输入 :t 开始文件传输 (transfer file)   |\n");
+  printf("|输入 :q 退出程序 (quit)                |\n");
   printf("----------------------------------------\n");
-  printf("%s", send_tip);
   fgets(input, sizeof(input), stdin);
   // # 号代表非法输入
-  if (strlen(input) != 2) {
+  if (strlen(input) != 3 && input[0] != ':') {
     return '#';
   }
-  if (input[0] != 'g' && input[0] != 'p' && input[0] != 'h' && input[0] != 't') {
+  if (input[1] != 'g' && input[1] != 'p' && input[1] != 'h' && input[1] != 't') {
     return '#';
   }
-  return input[0];
+  return input[1];
 }
 
 void group_chat() {
@@ -65,6 +63,7 @@ void group_chat() {
   int res = 0;
   char buf[BUFSIZ];
   pthread_t tid;
+  char username[BUFSIZ];
 
   struct sockaddr_in serv_addr;
   sfd = Socket(AF_INET, SOCK_STREAM, 0);
@@ -73,20 +72,22 @@ void group_chat() {
   inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr.s_addr);
 
   Connect(sfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+  Read(sfd, username, sizeof(username));
+
   system("clear");
+  printf("昵称: %s\n", username);
   printf("----------------------------------------\n");
   printf("|成功连接服务器                        |\n");
-  printf("|输入信息直接发送到群聊                |\n");
-  printf("|输入 q 退出群聊 (quit)                |\n");
+  printf("|输入 :q 退出群聊 (quit)               |\n");
   printf("----------------------------------------\n");
-  
+
   pthread_create(&tid, NULL, recv_msg, (void *)&sfd);
   pthread_detach(tid);
 
   for ( ; ; ) {
     bzero(buf, sizeof(buf));
     fgets(buf, sizeof(buf), stdin);
-    if (strlen(buf) == 2 && buf[0] == 'q') {  // 退出群聊
+    if (strlen(buf) == 3 && buf[0] == ':' && buf[1] == 'q') {  // 退出群聊
       system("clear");
       break;
     }
@@ -107,4 +108,5 @@ void *recv_msg(void *arg) {
   }
   Close(*sfd);
 }
+
 
