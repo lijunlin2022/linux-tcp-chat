@@ -40,19 +40,18 @@ int main() {
 char menu() {
   char input[BUFSIZ];
   printf("%s", send_style);
-  printf("----------------------------------------\n");
-  printf("|输入 :g 进入群聊天 (group chat)        |\n");
-  printf("|输入 :p 进入私聊 (private chat)        |\n");
-  printf("|输入 :h 查看群聊历史记录(history)      |\n");
+  printf("-----------------------------------------\n");
+  printf("|输入 :c 进入群聊和私聊 (chat)          |\n");
+  printf("|输入 :h 查看历史记录(history)          |\n");
   printf("|输入 :t 开始文件传输 (transfer file)   |\n");
   printf("|输入 :q 退出程序 (quit)                |\n");
-  printf("----------------------------------------\n");
+  printf("-----------------------------------------\n");
   fgets(input, sizeof(input), stdin);
   // # 号代表非法输入
   if (strlen(input) != 3 && input[0] != ':') {
     return '#';
   }
-  if (input[1] != 'g' && input[1] != 'p' && input[1] != 'h' && input[1] != 't') {
+  if (input[1] != 'c' && input[1] != 'h' && input[1] != 't') {
     return '#';
   }
   return input[1];
@@ -78,6 +77,8 @@ void group_chat() {
   printf("昵称: %s\n", username);
   printf("----------------------------------------\n");
   printf("|成功连接服务器                        |\n");
+  printf("|默认输入的消息是将群发                |\n");
+  printf("|输入 :u 昵称 消息内容 将私发给该昵称  |\n");
   printf("|输入 :q 退出群聊 (quit)               |\n");
   printf("----------------------------------------\n");
 
@@ -89,6 +90,7 @@ void group_chat() {
     fgets(buf, sizeof(buf), stdin);
     if (strlen(buf) == 3 && buf[0] == ':' && buf[1] == 'q') {  // 退出群聊
       system("clear");
+      Write(sfd, buf, strlen(buf));
       break;
     }
     Write(sfd, buf, strlen(buf));

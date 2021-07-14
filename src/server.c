@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <ctype.h>
@@ -19,7 +20,8 @@ struct cli_info {
   char name[BUFSIZ];
 };
 
-const char *chat_style = "\033[32m\t\t";
+const char *pri_chat_style = "\033[34m\t\t";
+const char *gro_chat_style = "\033[32m\t\t";
 const char *err_style = "\033[31m";
 const char *err_group_chat = "群聊人数已满, 无法发送信息到群聊\n";
 
@@ -78,30 +80,67 @@ int main() {
 
 void *group_chat(void *arg) {
   struct cli_info *c = (struct cli_info *)arg;
-  char prefix[BUFSIZ + 2];
   char buf[BUFSIZ];
+  char prefix[BUFSIZ + 2];
 
-  sprintf(prefix, "%s: ", c->name);
+  sprintf(prefix, "%s| ", (*c).name);
   int res = 0;
   for ( ; ; ) {
+    bzero(buf, sizeof(buf));
     res = Read(c->cfd, buf, sizeof(buf));
     if (res == 0) {
-      printf("%s 已经断开连接\n", c->name);
+      printf("#########\n");
       break;
     }
-    printf("从 %s 接到信息: \n", c->name);
-    Write(STDOUT_FILENO, buf, res);
-    printf("--------------------\n");
-    
-    // 转发消息到除了发送消息之外的客户端
-    for (int i = 0; i < CLI_CNT; i++) {
-      if ((cinfos[i].cfd != (*c).cfd) && (cinfos[i].cfd != 0)) {
-        Write(cinfos[i].cfd, (void *)chat_style, strlen(chat_style));
-	Write(cinfos[i].cfd, prefix, strlen(prefix));
-        Write(cinfos[i].cfd, buf, res);
+    if (strlen(buf) == 3 && buf[0] == ':' && buf[1] == 'q') {
+      break;
+    }
+    if (buf[0] == ':' && buf[2] == ' ') {
+      // 私聊
+      char username[BUFSIZ];
+      char real_info[BUFSIZ];
+      bzero(username, sizeof(username));
+      bzero(real_info, sizeof(real_info));
+      if (buf[1] == 'u') {
+        int i = 3, j = 0;
+	while (buf[i] != ' ') {
+	  username[j] = buf[i];
+	  i++;
+	  j++;
+	}
+	username[++j] = '\0';
+	
+	++i; j = 0;
+	while (buf[i] != '\0') {
+	  real_info[j] = buf[i];
+	  i++;
+	  j++;
+	}
+	real_info[++j] = '\0';
+
+	// 查找私聊的用户是否存在
+	for (int i = 0; i < CLI_CNT; i++) {
+	  if ((strcmp(cinfos[i].name, username) == 0) && (username[0] != '\0')) {
+            Write(cinfos[i].cfd, (void *)pri_chat_style, strlen(pri_chat_style));
+	    Write(cinfos[i].cfd, prefix, strlen(prefix));
+	    Write(cinfos[i].cfd, real_info, strlen(real_info));
+	    break;
+	  }
+	}
+      }
+    } else {
+      // 群聊
+      // 转发消息到除了发送消息之外的客户端
+      for (int i = 0; i < CLI_CNT; i++) {
+        if ((cinfos[i].cfd != (*c).cfd) && (cinfos[i].cfd != 0)) {
+          Write(cinfos[i].cfd, (void *)gro_chat_style, strlen(gro_chat_style));
+          Write(cinfos[i].cfd, prefix, strlen(prefix));
+          Write(cinfos[i].cfd, buf, res);
+        }
       }
     }
   }
+
   Close(c->cfd);
   return (void *)0;
 }
