@@ -7,7 +7,7 @@ const char *send_style = "\033[33m";
 const char *recv_style = "\033[32m\t\t";
 
 char menu();
-void group_chat();
+void chat();
 void *recv_msg(void *arg);
 
 int main() {
@@ -16,10 +16,8 @@ int main() {
   while (loop_flag) {
     choose = menu();
     switch (choose) {
-      case 'g':
-        group_chat(); break;
-      case 'p':
-        break;
+      case 'c':
+        chat(); break;
       case 'h':
         break;
       case 't':
@@ -57,7 +55,7 @@ char menu() {
   return input[1];
 }
 
-void group_chat() {
+void chat() {
   int sfd = 0;
   int res = 0;
   char buf[BUFSIZ];

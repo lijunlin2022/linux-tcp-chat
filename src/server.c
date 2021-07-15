@@ -10,7 +10,6 @@
 
 #include "customsocket.h"
 
-#define MAXLINE 8192
 #define SER_PORT 8000
 #define CLI_CNT 50
 
@@ -27,7 +26,7 @@ const char *err_group_chat = "群聊人数已满, 无法发送信息到群聊\n"
 
 struct cli_info cinfos[CLI_CNT];
 
-void *group_chat(void *arg);
+void *chat(void *arg);
 
 int main() {
 
@@ -70,7 +69,7 @@ int main() {
       printf("给 cfd 为 %d  的客户端分配昵称 %s\n", cinfos[i].cfd, cinfos[i].name);
       Write(cinfos[i].cfd, cinfos[i].name, sizeof(cinfos[i].name));
 
-      pthread_create(&tid, NULL, group_chat, (void*)&cinfos[i]);
+      pthread_create(&tid, NULL, chat, (void*)&cinfos[i]);
       pthread_detach(tid);  // 子进程分离,防止僵尸线程产生
       i++;
     }
@@ -78,18 +77,22 @@ int main() {
   return 0;
 }
 
-void *group_chat(void *arg) {
+void *chat(void *arg) {
   struct cli_info *c = (struct cli_info *)arg;
   char buf[BUFSIZ];
   char prefix[BUFSIZ + 2];
+  char history[BUFSIZ * 4];
+  FILE *fp = NULL;
 
   sprintf(prefix, "%s| ", (*c).name);
   int res = 0;
   for ( ; ; ) {
     bzero(buf, sizeof(buf));
+    bzero(history, sizeof(history));
+    fp = fopen("chat_history.txt", "a+");
     res = Read(c->cfd, buf, sizeof(buf));
     if (res == 0) {
-      printf("#########\n");
+      printf("cfd 为 %d 的客户端已经断开连接\n", (*c).cfd);
       break;
     }
     if (strlen(buf) == 3 && buf[0] == ':' && buf[1] == 'q') {
@@ -121,6 +124,14 @@ void *group_chat(void *arg) {
 	// 查找私聊的用户是否存在
 	for (int i = 0; i < CLI_CNT; i++) {
 	  if ((strcmp(cinfos[i].name, username) == 0) && (username[0] != '\0')) {
+	    sprintf(
+	            history,
+	           "<< type: pri, from: %s, to: %s, msg: %s",
+		    (*c).name,
+		    cinfos[i].name,
+		    real_info
+            );
+	    fputs(history, fp);
             Write(cinfos[i].cfd, (void *)pri_chat_style, strlen(pri_chat_style));
 	    Write(cinfos[i].cfd, prefix, strlen(prefix));
 	    Write(cinfos[i].cfd, real_info, strlen(real_info));
@@ -132,15 +143,23 @@ void *group_chat(void *arg) {
       // 群聊
       // 转发消息到除了发送消息之外的客户端
       for (int i = 0; i < CLI_CNT; i++) {
-        if ((cinfos[i].cfd != (*c).cfd) && (cinfos[i].cfd != 0)) {
+        if ((cinfos[i].cfd != (*c).cfd) && (cinfos[i].cfd != 0)) { 
+          sprintf(
+                  history,
+                 "<< type: gro, from: %s, to: all, msg: %s",
+                  (*c).name,
+                  buf
+          );
+          fputs(history, fp);
           Write(cinfos[i].cfd, (void *)gro_chat_style, strlen(gro_chat_style));
           Write(cinfos[i].cfd, prefix, strlen(prefix));
           Write(cinfos[i].cfd, buf, res);
         }
       }
     }
+    fclose(fp);
   }
 
-  Close(c->cfd);
+  Close((*c).cfd);
   return (void *)0;
 }
