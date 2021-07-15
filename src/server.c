@@ -9,6 +9,7 @@
 #include <fcntl.h>
 
 #include "customsocket.h"
+#include "customfile.h"
 
 #define SER_PORT 8000
 #define CLI_CNT 50
@@ -51,6 +52,7 @@ int main() {
   Listen(lfd, 128);
   printf("接收客户端连接...\n");
 
+
   int i = 0;
   for ( ; ; ) {
     cli_addr_len = sizeof(cli_addr);
@@ -89,7 +91,7 @@ void *chat(void *arg) {
   for ( ; ; ) {
     bzero(buf, sizeof(buf));
     bzero(history, sizeof(history));
-    fp = fopen("chat_history.txt", "a+");
+    fp = Fopen("chat_history.txt", "a+");
     res = Read(c->cfd, buf, sizeof(buf));
     if (res == 0) {
       printf("cfd 为 %d 的客户端已经断开连接\n", (*c).cfd);
@@ -131,7 +133,7 @@ void *chat(void *arg) {
 		    cinfos[i].name,
 		    real_info
             );
-	    fputs(history, fp);
+	    Fputs(history, fp);
             Write(cinfos[i].cfd, (void *)pri_chat_style, strlen(pri_chat_style));
 	    Write(cinfos[i].cfd, prefix, strlen(prefix));
 	    Write(cinfos[i].cfd, real_info, strlen(real_info));
@@ -150,14 +152,14 @@ void *chat(void *arg) {
                   (*c).name,
                   buf
           );
-          fputs(history, fp);
+          Fputs(history, fp);
           Write(cinfos[i].cfd, (void *)gro_chat_style, strlen(gro_chat_style));
           Write(cinfos[i].cfd, prefix, strlen(prefix));
           Write(cinfos[i].cfd, buf, res);
         }
       }
     }
-    fclose(fp);
+    Fclose(fp);
   }
 
   Close((*c).cfd);
