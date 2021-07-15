@@ -10,9 +10,27 @@ char menu();
 void chat();
 void *recv_msg(void *arg);
 
+int sfd = 0;
+int res = 0;
+char buf[BUFSIZ];
+char username[BUFSIZ];
+struct sockaddr_in serv_addr;
+
 int main() {
+
+  sfd = Socket(AF_INET, SOCK_STREAM, 0);
+  serv_addr.sin_family = AF_INET;
+  serv_addr.sin_port = htons(SERV_PORT);
+  inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr.s_addr);
+
+  Connect(sfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+  printf("%s", send_style);
+  printf("----------------------------------------\n");
+  printf("|成功连接服务器                        |\n");
+
   char choose;
   int loop_flag = 1;
+
   while (loop_flag) {
     choose = menu();
     switch (choose) {
@@ -56,25 +74,18 @@ char menu() {
 }
 
 void chat() {
-  int sfd = 0;
-  int res = 0;
-  char buf[BUFSIZ];
+  
+  const char *chooseinfo = "c";
+  Write(sfd, (void *)chooseinfo, sizeof(chooseinfo));
+
   pthread_t tid;
-  char username[BUFSIZ];
 
-  struct sockaddr_in serv_addr;
-  sfd = Socket(AF_INET, SOCK_STREAM, 0);
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_port = htons(SERV_PORT);
-  inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr.s_addr);
-
-  Connect(sfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+  bzero(username, sizeof(username));
   Read(sfd, username, sizeof(username));
 
   system("clear");
   printf("昵称: %s\n", username);
   printf("----------------------------------------\n");
-  printf("|成功连接服务器                        |\n");
   printf("|默认输入的消息是将群发                |\n");
   printf("|输入 :u 昵称 消息内容 将私发给该昵称  |\n");
   printf("|输入 :q 退出群聊 (quit)               |\n");
@@ -98,12 +109,13 @@ void chat() {
 }
 
 void *recv_msg(void *arg) {
-  char buf[4068];
+  char buf[BUFSIZ];
   int res = 0;
   int *sfd = (int *)arg;
   for ( ; ; ) {
+    bzero(buf, sizeof(buf));
     res = Read(*sfd, buf, sizeof(buf));
-    write(STDOUT_FILENO, buf, res);
+    Write(STDOUT_FILENO, buf, res);
     Write(STDOUT_FILENO, (void *)send_style, strlen(send_style));
   }
   Close(*sfd);
