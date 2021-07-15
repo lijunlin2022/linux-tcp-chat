@@ -80,12 +80,22 @@ int main() {
         strncpy(cinfos[i].name, username, strlen(username));
       
         // 分配昵称
-        printf("cfd 为 %d  的客户端分配昵称 %s\n", cinfos[i].cfd, cinfos[i].name);
+        printf("cfd 为 %d 的客户端分配昵称 %s\n", cinfos[i].cfd, cinfos[i].name);
         Write(cinfos[i].cfd, cinfos[i].name, sizeof(cinfos[i].name));
 
         pthread_create(&tid, NULL, chat, (void*)&cinfos[i]);
         pthread_detach(tid);  // 子进程分离,防止僵尸线程产生
         i++;
+      }
+    } else if (chooseinfo[0] == 'h') {
+      printf("cfd 为 %d 的客户端想要访问聊天记录\n", cfd);
+
+      FILE *fp = Fopen("chat_history.txt", "r");
+      char buf[BUFSIZ];
+      bzero(buf, sizeof(buf));
+      while (Fgets(buf, sizeof(buf), fp) != NULL) {
+        Write(cfd, buf, sizeof(buf));
+	bzero(buf, sizeof(buf));
       }
     }
   }
