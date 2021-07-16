@@ -11,6 +11,7 @@ void chat();
 void *chat_recv_msg(void *arg);
 void view_history();
 void *his_recv_msg(void *arg);
+void transfer_file();
 
 int sfd = 0;
 int res = 0;
@@ -31,7 +32,7 @@ int main() {
       case 'h':
         view_history(); break;
       case 't':
-        break;
+        transfer_file(); break;
       case 'q':
 	loop_flag = 0; break;
       default:
@@ -182,4 +183,82 @@ void *his_recv_msg(void *arg) {
   Close(*sfd);
 }
 
+void transfer_file() {
 
+  sfd = Socket(AF_INET, SOCK_STREAM, 0);
+  serv_addr.sin_family = AF_INET;
+  serv_addr.sin_port = htons(SERV_PORT);
+  inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr.s_addr);
+
+  Connect(sfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+  system("clear");
+  printf("%s", send_style);
+  printf("----------------------------------------\n");
+  printf("|成功连接服务器                        |\n");
+  printf("----------------------------------------\n");
+
+
+  const char *chooseinfo = "t";
+  Write(sfd, (void *)chooseinfo, sizeof(chooseinfo));
+  Close(sfd);
+
+  sfd = Socket(AF_INET, SOCK_STREAM, 0);
+  serv_addr.sin_family = AF_INET;
+  serv_addr.sin_port = htons(SERV_PORT);
+  inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr.s_addr);
+
+  Connect(sfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+
+  system("clear");
+  char up_down_choose[BUFSIZ];
+  char filename[BUFSIZ];
+  char buf[BUFSIZ];
+  bzero(up_down_choose, sizeof(up_down_choose));
+  bzero(filename, sizeof(filename));
+  
+  printf("----------------------------------------\n");
+  printf("|xxxxxxxxxxxxxx                        |\n");
+  printf("----------------------------------------\n");
+
+  fgets(up_down_choose, sizeof(up_down_choose), stdin);
+
+  Write(sfd, up_down_choose, sizeof(up_down_choose));
+
+  // 获得文件名
+  int i = 3, j = 0;
+  while (up_down_choose[i] != '\0') {
+    filename[j] = up_down_choose[i];
+    i++;
+    j++;
+  }
+  filename[strlen(filename) - 1] = '\0';
+
+  if (up_down_choose[1] == 'u') {
+    FILE *fp = fopen(filename, "r");
+    if (fp == NULL) {
+      printf("fopen error\n");
+      return;
+    }
+    bzero(buf, sizeof(buf));
+    while (fgets(buf, sizeof(buf), fp) != NULL) {
+      Write(sfd, buf, sizeof(buf));
+      bzero(buf, sizeof(buf));
+    }
+    fclose(fp);
+    Close(sfd);
+    printf("上传成功\n");
+  } else if (up_down_choose[1] == 'd') {
+    char new_filename[BUFSIZ + 5];
+    sprintf(new_filename, "down-%s", filename);
+    FILE *fp = fopen(new_filename, "w");
+    bzero(buf, sizeof(buf));
+    while ((res = Read(sfd, buf, sizeof(buf))) != 0) {
+      fputs(buf, fp);
+      bzero(buf, sizeof(buf));
+    }
+    fclose(fp);
+    printf("下载成功\n");
+  }
+
+
+}

@@ -97,6 +97,51 @@ int main() {
         Write(cfd, buf, sizeof(buf));
 	bzero(buf, sizeof(buf));
       }
+    } else if (chooseinfo[0] == 't') {
+      // 关闭连接再新建连接，读取是上传文件还是下载文件
+      Close(cfd);
+      char up_down_choose[BUFSIZ];
+      char filename[BUFSIZ];
+      char new_filename[BUFSIZ + 5];
+      char buf[BUFSIZ];
+
+      bzero(up_down_choose, sizeof(up_down_choose));
+      bzero(filename, sizeof(filename));
+
+      cfd = Accept(lfd, (struct sockaddr *)&cli_addr, &cli_addr_len);
+      Read(cfd, up_down_choose, sizeof(up_down_choose));
+
+      // 获得文件名
+      int i = 3, j = 0;
+      while (up_down_choose[i] != '\0') {
+        filename[j] = up_down_choose[i];
+        i++;
+        j++;
+      }
+      filename[strlen(filename) - 1] = '\0';
+
+      if (up_down_choose[1] == 'u') {
+        printf("cfd 为 %d 的客户端想要上传文件\n", cfd);
+	sprintf(new_filename, "up-%s", filename);
+	FILE *fp = Fopen(new_filename, "w");
+	bzero(buf, sizeof(buf));
+	while ((res = Read(cfd, buf, sizeof(buf))) != 0) {
+	  fputs(buf, fp);
+	  bzero(buf, sizeof(buf));
+	}
+	Fclose(fp);
+	printf("上传成功\n");
+      } else if (up_down_choose[1] == 'd') {
+        printf("cfd 为 %d 的客户端想要下载文件\n", cfd);
+        FILE *fp = Fopen(filename, "r");
+        bzero(buf, sizeof(buf));
+        while(fgets(buf, sizeof(buf), fp) != NULL) {
+	  Write(cfd, buf, sizeof(buf));
+	  bzero(buf, sizeof(buf));
+	}
+	Fclose(fp);
+	Close(cfd);
+      }
     }
   }
   return 0;
