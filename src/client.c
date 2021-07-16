@@ -1,6 +1,8 @@
 #include <string.h>
 #include <pthread.h>
+
 #include "customsocket.h"
+#include "customfile.h"
 
 #define SERV_PORT 8000
 const char *send_style = "\033[33m";
@@ -234,17 +236,13 @@ void transfer_file() {
   filename[strlen(filename) - 1] = '\0';
 
   if (up_down_choose[1] == 'u') {
-    FILE *fp = fopen(filename, "r");
-    if (fp == NULL) {
-      printf("fopen error\n");
-      return;
-    }
+    FILE *fp = Fopen(filename, "r");
     bzero(buf, sizeof(buf));
     while (fgets(buf, sizeof(buf), fp) != NULL) {
       Write(sfd, buf, sizeof(buf));
       bzero(buf, sizeof(buf));
     }
-    fclose(fp);
+    Fclose(fp);
     Close(sfd);
     printf("上传成功\n");
   } else if (up_down_choose[1] == 'd') {
@@ -256,7 +254,7 @@ void transfer_file() {
       fputs(buf, fp);
       bzero(buf, sizeof(buf));
     }
-    fclose(fp);
+    Fclose(fp);
     printf("下载成功\n");
   }
 

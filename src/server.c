@@ -93,7 +93,7 @@ int main() {
       FILE *fp = Fopen("chat_history.txt", "r");
       char buf[BUFSIZ];
       bzero(buf, sizeof(buf));
-      while (Fgets(buf, sizeof(buf), fp) != NULL) {
+      while (fgets(buf, sizeof(buf), fp) != NULL) {
         Write(cfd, buf, sizeof(buf));
 	bzero(buf, sizeof(buf));
       }
@@ -203,7 +203,7 @@ void *chat(void *arg) {
 	  	      cinfos[i].name,
 	  	      real_info
               );
-	      Fputs(history, fp);
+	      fputs(history, fp);
               Write(cinfos[i].cfd, (void *)pri_chat_style, strlen(pri_chat_style));
 	      Write(cinfos[i].cfd, prefix, strlen(prefix));
 	      Write(cinfos[i].cfd, real_info, strlen(real_info));
@@ -224,7 +224,7 @@ void *chat(void *arg) {
                     (*c).name,
                     buf
             );
-            Fputs(history, fp);
+            fputs(history, fp);
             Write(cinfos[i].cfd, (void *)gro_chat_style, strlen(gro_chat_style));
             Write(cinfos[i].cfd, prefix, strlen(prefix));
             Write(cinfos[i].cfd, buf, res);

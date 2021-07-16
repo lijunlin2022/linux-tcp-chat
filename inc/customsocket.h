@@ -1,5 +1,5 @@
-#ifndef _CUSTOM_H_
-#define _CUSTOM_H_
+#ifndef _CUSTOMSOCKET_H_
+#define _CUSTOMSOCKET_H_
 
 #include <stdio.h>
 #include <stdlib.h>
