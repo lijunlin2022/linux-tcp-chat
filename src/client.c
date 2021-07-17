@@ -113,6 +113,7 @@ void chat() {
   }
 
   Close(sfd);
+  return;
 }
 
 void *chat_recv_msg(void *arg) {
@@ -126,6 +127,7 @@ void *chat_recv_msg(void *arg) {
     Write(STDOUT_FILENO, (void *)send_style, strlen(send_style));
   }
   Close(*sfd);
+  return (void *)0;
 }
 
 void view_history() {
@@ -149,7 +151,7 @@ void view_history() {
   pthread_t tid;
   
   printf("----------------------------------------\n");
-  printf("|输入 :q 退出群聊 (quit)               |\n");
+  printf("|输入 :q 退出查看历史记录 (quit)       |\n");
   printf("----------------------------------------\n");
 
   pthread_create(&tid, NULL, his_recv_msg, (void *)&sfd);
@@ -166,7 +168,7 @@ void view_history() {
     }
     Write(sfd, buf, strlen(buf));
   }
-
+  return;
 }
 
 void *his_recv_msg(void *arg) {
@@ -183,6 +185,7 @@ void *his_recv_msg(void *arg) {
     Write(STDOUT_FILENO, (void *)send_style, strlen(send_style));
   }
   Close(*sfd);
+  return (void *)0;
 }
 
 void transfer_file() {
@@ -219,7 +222,8 @@ void transfer_file() {
   bzero(filename, sizeof(filename));
   
   printf("----------------------------------------\n");
-  printf("|xxxxxxxxxxxxxx                        |\n");
+  printf("|输入 :u 文件名 上传该文件到服务器     |\n");
+  printf("|输入 :d 文件名 从服务器下载该文件     |\n");
   printf("----------------------------------------\n");
 
   fgets(up_down_choose, sizeof(up_down_choose), stdin);
@@ -257,6 +261,8 @@ void transfer_file() {
     Fclose(fp);
     printf("下载成功\n");
   }
-
+  sleep(10);
+  system("clear");
+  return;
 
 }
